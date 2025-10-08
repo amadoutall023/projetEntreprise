@@ -1,0 +1,18 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const controller_1 = require("./controller");
+const validation_1 = require("./validation");
+const validation_2 = require("../../middlewares/validation");
+const auth_1 = require("../../middlewares/auth");
+const rbac_1 = require("../../middlewares/rbac");
+const router = (0, express_1.Router)();
+const payslipController = new controller_1.PayslipController();
+router.use(auth_1.authenticate);
+router.use(rbac_1.requireCompanyAccess);
+router.get('/', payslipController.getPayslips.bind(payslipController));
+router.get('/:id', payslipController.getPayslipById.bind(payslipController));
+router.put('/:id', (0, validation_2.validateRequest)(validation_1.updatePayslipSchema), payslipController.updatePayslip.bind(payslipController));
+router.post('/:id/recalculate', payslipController.recalculatePayslip.bind(payslipController));
+router.get('/:id/pdf', payslipController.generatePayslipPDF.bind(payslipController));
+exports.default = router;

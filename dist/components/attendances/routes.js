@@ -1,0 +1,20 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const controller_1 = require("./controller");
+const validation_1 = require("./validation");
+const validation_2 = require("../../middlewares/validation");
+const auth_1 = require("../../middlewares/auth");
+const rbac_1 = require("../../middlewares/rbac");
+const router = (0, express_1.Router)();
+const attendanceController = new controller_1.AttendanceController();
+router.use(auth_1.authenticate);
+router.use(rbac_1.requireCompanyAccess);
+router.post('/', (0, validation_2.validateRequest)(validation_1.createAttendanceSchema), attendanceController.createAttendance.bind(attendanceController));
+router.get('/', (0, validation_2.validateRequest)(validation_1.getAttendancesSchema), attendanceController.getAttendances.bind(attendanceController));
+router.get('/:id', attendanceController.getAttendanceById.bind(attendanceController));
+router.put('/:id', (0, validation_2.validateRequest)(validation_1.updateAttendanceSchema), attendanceController.updateAttendance.bind(attendanceController));
+// Routes spéciales pour les rapports
+router.get('/reports/daily', attendanceController.getDailyReport.bind(attendanceController));
+router.get('/reports/monthly/:employeeId/:year/:month', attendanceController.getMonthlyReport.bind(attendanceController));
+exports.default = router;

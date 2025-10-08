@@ -1,0 +1,188 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMINISTRATEUR
+  ADMINISTRATEUR
+  CAISSIER
+}
+
+enum PayPeriodType {
+  MENSUEL
+  HEBDOMADAIRE
+  QUOTIDIEN
+}
+
+enum ContractType {
+  TEMPS_PLEIN
+  TEMPS_PARTIEL
+  CONTRAT
+}
+
+enum PayRunStatus {
+  BROUILLON
+  APPROUVE
+  FERME
+}
+
+enum PayslipStatus {
+  BROUILLON
+  APPROUVE
+  PAYE
+  PARTIEL
+  EN_ATTENTE
+}
+
+enum PaymentMethod {
+  ESPECES
+  VIREMENT
+  MOBILE_MONEY
+}
+
+model Utilisateur {
+  id           String      @id @default(cuid())
+  email        String      @unique
+  motDePasse   String
+  prenom       String
+  nom          String
+  role         Role        @default(CAISSIER)
+  entrepriseId String?
+  entreprise   Entreprise? @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  estActif     Boolean     @default(true)
+  creeLe       DateTime    @default(now())
+  misAJourLe   DateTime    @updatedAt
+
+  @@index([entrepriseId])
+  @@map("utilisateurs")
+}
+
+model Entreprise {
+  id              String        @id @default(cuid())
+  nom             String
+  logo            String?
+  adresse         String?
+  devise          String        @default("XOF")
+  typePeriodePaie PayPeriodType @default(MENSUEL)
+  utilisateurs    Utilisateur[]
+  employes        Employe[]
+  cyclesPaie      CyclePaie[]
+  creeLe          DateTime      @default(now())
+  misAJourLe      DateTime      @updatedAt
+
+  @@map("entreprises")
+}
+
+model Employe {
+  id             String         @id @default(cuid())
+  prenom         String
+  nom            String
+  poste          String
+  typeContrat    ContractType   @default(TEMPS_PLEIN)
+  taux           Float // taux horaire ou salaire mensuel selon contract
+  compteBancaire String?
+  nomBanque      String?
+  entrepriseId   String
+  entreprise     Entreprise     @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  estActif       Boolean        @default(true)
+  bulletinsPaie  BulletinPaie[]
+  pointages      Pointage[]
+  paiements      Paiement[]
+  creeLe         DateTime       @default(now())
+  misAJourLe     DateTime       @updatedAt
+
+  @@index([entrepriseId])
+  @@index([estActif])
+  @@index([creeLe])
+  @@map("employes")
+}
+
+model CyclePaie {
+  id            String         @id @default(cuid())
+  nom           String
+  dateDebut     DateTime
+  dateFin       DateTime
+  statut        PayRunStatus   @default(BROUILLON)
+  entrepriseId  String
+  entreprise    Entreprise     @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  bulletinsPaie BulletinPaie[]
+  creeLe        DateTime       @default(now())
+  misAJourLe    DateTime       @updatedAt
+
+  @@index([entrepriseId])
+  @@index([statut])
+  @@index([dateDebut])
+  @@map("cycles_paie")
+}
+
+model BulletinPaie {
+  id              String        @id @default(cuid())
+  employeId       String
+  employe         Employe       @relation(fields: [employeId], references: [id], onDelete: Cascade)
+  cyclePaieId     String
+  cyclePaie       CyclePaie     @relation(fields: [cyclePaieId], references: [id], onDelete: Cascade)
+  montantBrut     Float
+  deductions      Float         @default(0)
+  montantNet      Float
+  joursTravailles Int? // pour calcul journalier
+  statut          PayslipStatus @default(BROUILLON)
+  paiements       Paiement[]
+  creeLe          DateTime      @default(now())
+  misAJourLe      DateTime      @updatedAt
+
+  @@unique([employeId, cyclePaieId])
+  @@index([cyclePaieId])
+  @@index([statut])
+  @@index([creeLe])
+  @@map("bulletins_paie")
+}
+
+model Paiement {
+  id             String        @id @default(cuid())
+  bulletinPaieId String?
+  bulletinPaie   BulletinPaie? @relation(fields: [bulletinPaieId], references: [id], onDelete: Cascade)
+  employeId      String?
+  employe        Employe?      @relation(fields: [employeId], references: [id], onDelete: Cascade)
+  montant        Float
+  methode        PaymentMethod
+  reference      String? // numéro de transaction, etc.
+  notes          String?
+  creeLe         DateTime      @default(now())
+  misAJourLe     DateTime      @updatedAt
+
+  @@index([bulletinPaieId])
+  @@index([employeId])
+  @@index([creeLe])
+  @@map("paiements")
+}
+
+model Pointage {
+  id                String    @id @default(cuid())
+  employeId         String
+  employe           Employe   @relation(fields: [employeId], references: [id], onDelete: Cascade)
+  date              DateTime // date du pointage
+  heureArrivee      DateTime?
+  heureDepart       DateTime?
+  isPresent         Boolean   @default(false)
+  heuresPrevues     Float? // obligatoire pour CONTRAT
+  heuresTravaillees Float? // calculées automatiquement
+  creeLe            DateTime  @default(now())
+  misAJourLe        DateTime  @updatedAt
+
+  @@unique([employeId, date])
+  @@index([employeId])
+  @@index([date])
+  @@map("pointages")
+}

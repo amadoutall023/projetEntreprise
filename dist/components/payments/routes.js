@@ -1,0 +1,17 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const controller_1 = require("./controller");
+const auth_1 = require("../../middlewares/auth");
+const rbac_1 = require("../../middlewares/rbac");
+const router = (0, express_1.Router)();
+const paymentController = new controller_1.PaymentController();
+router.use(auth_1.authenticate);
+router.use(rbac_1.requireCompanyAccess);
+router.post('/', paymentController.createPayment.bind(paymentController));
+router.post('/mark-paid', paymentController.markEmployeeAsPaid.bind(paymentController));
+router.get('/', paymentController.getPayments.bind(paymentController));
+router.get('/employee/:employeeId/status', paymentController.getEmployeePaymentStatus.bind(paymentController));
+router.get('/:id/receipt-pdf', paymentController.generatePaymentReceiptPDF.bind(paymentController));
+router.get('/list-pdf', paymentController.generatePaymentListPDF.bind(paymentController));
+exports.default = router;

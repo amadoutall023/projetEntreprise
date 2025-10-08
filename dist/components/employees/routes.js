@@ -1,0 +1,20 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const controller_1 = require("./controller");
+const validation_1 = require("./validation");
+const validation_2 = require("../../middlewares/validation");
+const auth_1 = require("../../middlewares/auth");
+const rbac_1 = require("../../middlewares/rbac");
+const router = (0, express_1.Router)();
+const employeeController = new controller_1.EmployeeController();
+// Routes protégées
+router.use(auth_1.authenticate);
+router.use(rbac_1.requireCompanyAccess);
+router.post('/', (0, validation_2.validateRequest)(validation_1.createEmployeeSchema), employeeController.createEmployee.bind(employeeController));
+router.get('/', (0, validation_2.validateRequest)(validation_1.getEmployeesSchema), employeeController.getEmployees.bind(employeeController));
+router.get('/:id', (0, validation_2.validateRequest)(validation_1.getEmployeeSchema), employeeController.getEmployeeById.bind(employeeController));
+router.put('/:id', (0, validation_2.validateRequest)(validation_1.updateEmployeeSchema), employeeController.updateEmployee.bind(employeeController));
+router.delete('/:id', (0, validation_2.validateRequest)(validation_1.getEmployeeSchema), employeeController.deleteEmployee.bind(employeeController));
+router.patch('/:id/toggle-status', (0, validation_2.validateRequest)(validation_1.getEmployeeSchema), employeeController.toggleEmployeeStatus.bind(employeeController));
+exports.default = router;

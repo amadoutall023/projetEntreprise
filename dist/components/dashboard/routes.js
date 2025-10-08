@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const controller_1 = require("./controller");
+const auth_1 = require("../../middlewares/auth");
+const rbac_1 = require("../../middlewares/rbac");
+const router = (0, express_1.Router)();
+const dashboardController = new controller_1.DashboardController();
+router.use(auth_1.authenticate);
+router.use(rbac_1.requireCompanyAccess);
+router.get('/kpis', dashboardController.getKPIs.bind(dashboardController));
+exports.default = router;
